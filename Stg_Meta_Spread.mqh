@@ -9,10 +9,10 @@
 
 // User input params.
 INPUT2_GROUP("Meta Spread strategy: main params");
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_80 = STRAT_DEMARKER;    // Strategy for free margin > 80%
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_50 = STRAT_OSCILLATOR;  // Strategy for free margin (50%-80%)
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_50 = STRAT_NONE;        // Strategy for free margin (20-50%)
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_20 = STRAT_NONE;        // Strategy for free margin < 20%
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_10 = STRAT_DEMARKER;  // Strategy on spread 0-10pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_20 = STRAT_NONE;      // Strategy on spread 10-20pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_40 = STRAT_NONE;      // Strategy on spread 20-40pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_40 = STRAT_NONE;      // Strategy on spread greater than 40pts
 INPUT2_GROUP("Meta Spread strategy: common params");
 INPUT2 float Meta_Spread_LotSize = 0;                // Lot size
 INPUT2 int Meta_Spread_SignalOpenMethod = 0;         // Signal open method
@@ -50,12 +50,12 @@ struct Stg_Meta_Spread_Params_Defaults : StgParams {
 
 class Stg_Meta_Spread : public Strategy {
  protected:
-  Account account;
+  Trade strade;
   DictStruct<long, Ref<Strategy>> strats;
 
  public:
   Stg_Meta_Spread(StgParams &_sparams, TradeParams &_tparams, ChartParams &_cparams, string _name = "")
-      : Strategy(_sparams, _tparams, _cparams, _name) {}
+      : Strategy(_sparams, _tparams, _cparams, _name), strade(_tparams, _cparams) {}
 
   static Stg_Meta_Spread *Init(ENUM_TIMEFRAMES _tf = NULL, EA *_ea = NULL) {
     // Initialize strategy initial values.
@@ -72,10 +72,10 @@ class Stg_Meta_Spread : public Strategy {
    * Event on strategy's init.
    */
   void OnInit() {
-    StrategyAdd(Meta_Spread_Strategy_Spread_GT_80, 1);
-    StrategyAdd(Meta_Spread_Strategy_Spread_GT_50, 2);
-    StrategyAdd(Meta_Spread_Strategy_Spread_LT_50, 3);
-    StrategyAdd(Meta_Spread_Strategy_Spread_LT_20, 4);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_10, 0);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_20, 1);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_40, 2);
+    StrategyAdd(Meta_Spread_Strategy_Spread_GT_40, 3);
   }
 
   /**
@@ -283,29 +283,62 @@ class Stg_Meta_Spread : public Strategy {
   }
 
   /**
+   * Gets strategy.
+   */
+  Ref<Strategy> GetStrategy(ENUM_ORDER_TYPE _cmd, int _method = 0, float _level = 0.0f, int _shift = 0) {
+    bool _result_signal = true;
+    Chart *_chart = trade.GetChart();
+    Ref<Strategy> _strat_ref;
+    double _spread = _chart.GetSpread();
+    if (_spread < 10) {
+      // Strategy on spread 0-10pts.
+      _strat_ref = strats.GetByKey(0);
+    } else if (_spread < 20) {
+      // Strategy on spread 10-20pts.
+      _strat_ref = strats.GetByKey(1);
+    } else if (_spread < 40) {
+      // Strategy on spread 20-40pts.
+      _strat_ref = strats.GetByKey(2);
+    } else if (_spread >= 40) {
+      // Strategy on spread >40pts.
+      _strat_ref = strats.GetByKey(3);
+    }
+    return _strat_ref;
+  }
+
+  /**
+   * Gets price stop value.
+   */
+  float PriceStop(ENUM_ORDER_TYPE _cmd, ENUM_ORDER_TYPE_VALUE _mode, int _method = 0, float _level = 0.0f,
+                  short _bars = 4) {
+    float _result = 0;
+    uint _ishift = 0;  // @fixme
+    if (_method == 0) {
+      // Ignores calculation when method is 0.
+      return (float)_result;
+    }
+    Ref<Strategy> _strat_ref = GetStrategy(_cmd, _method, _level, _ishift);  // @todo: Add shift.
+    if (!_strat_ref.IsSet()) {
+      // Returns false when strategy is not set.
+      return false;
+    }
+
+    _level = _level == 0.0f ? _strat_ref.Ptr().Get<float>(STRAT_PARAM_SOL) : _level;
+    _method = _strat_ref.Ptr().Get<int>(STRAT_PARAM_SOM);
+    //_shift = _shift == 0 ? _strat_ref.Ptr().Get<int>(STRAT_PARAM_SHIFT) : _shift;
+    _result = _strat_ref.Ptr().PriceStop(_cmd, _mode, _method, _level /*, _shift*/);
+    return (float)_result;
+  }
+
+  /**
    * Check strategy's opening signal.
    */
   bool SignalOpen(ENUM_ORDER_TYPE _cmd, int _method, float _level = 0.0f, int _shift = 0) {
     bool _result = true;
     // uint _ishift = _indi.GetShift();
-    // double _margin_free = account.GetSpreadFreeInPct(); // GH-720: @fixme
-    double _margin_free = 100 / account.GetBalance() * account.GetMarginFree();
     // double _margin_free =
     uint _ishift = _shift;
-    Ref<Strategy> _strat_ref;
-    if (_margin_free >= 80) {
-      // Spread value is greater than 80% (between 80% and 100%).
-      _strat_ref = strats.GetByKey(1);
-    } else if (_margin_free >= 50) {
-      // Spread value is greater than 50% (between 50% and 80%).
-      _strat_ref = strats.GetByKey(2);
-    } else if (_margin_free <= 20) {
-      // Spread value is lesser than 20% (between 0% and 20%).
-      _strat_ref = strats.GetByKey(4);
-    } else if (_margin_free <= 50) {
-      // Spread value is lesser than 50% (between 20% and 50%).
-      _strat_ref = strats.GetByKey(3);
-    }
+    Ref<Strategy> _strat_ref = GetStrategy(_cmd, _method, _level, _shift);
     if (!_strat_ref.IsSet()) {
       // Returns false when strategy is not set.
       return false;
