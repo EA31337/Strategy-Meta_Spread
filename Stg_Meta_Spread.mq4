@@ -10,4 +10,4 @@
  */
 
 // Includes the main code.
-#include "Stg_Meta_Margin.mq5"
+#include "Stg_Meta_Spread.mq5"
