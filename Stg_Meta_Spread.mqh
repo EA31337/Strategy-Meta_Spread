@@ -9,10 +9,10 @@
 
 // User input params.
 INPUT2_GROUP("Meta Spread strategy: main params");
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_10 = STRAT_DEMARKER;  // Strategy on spread 0-10pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_20 = STRAT_NONE;      // Strategy on spread 10-20pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_40 = STRAT_NONE;      // Strategy on spread 20-40pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_40 = STRAT_NONE;      // Strategy on spread greater than 40pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_10 = STRAT_NONE;              // Strategy on spread 0-10pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_20 = STRAT_OSCILLATOR_RANGE;  // Strategy on spread 10-20pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_40 = STRAT_NONE;              // Strategy on spread 20-40pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_40 = STRAT_NONE;  // Strategy on spread greater than 40pts
 INPUT2_GROUP("Meta Spread strategy: common params");
 INPUT2 float Meta_Spread_LotSize = 0;                // Lot size
 INPUT2 int Meta_Spread_SignalOpenMethod = 0;         // Signal open method
