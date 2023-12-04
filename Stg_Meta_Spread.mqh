@@ -9,10 +9,10 @@
 
 // User input params.
 INPUT2_GROUP("Meta Spread strategy: main params");
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_10 = STRAT_RSI;   // Strategy on spread 0-10pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_20 = STRAT_NONE;  // Strategy on spread 10-20pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_40 = STRAT_NONE;  // Strategy on spread 20-40pts
-INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_40 = STRAT_NONE;  // Strategy on spread greater than 40pts
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_1p = STRAT_RSI;   // Strategy on spread 1 pip
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_2p = STRAT_NONE;  // Strategy on spread 1-2 pips
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_LT_4p = STRAT_NONE;  // Strategy on spread 2-4 pips
+INPUT2 ENUM_STRATEGY Meta_Spread_Strategy_Spread_GT_4p = STRAT_NONE;  // Strategy on spread greater than 4 pips
 INPUT3_GROUP("Meta Spread strategy: common params");
 INPUT3 float Meta_Spread_LotSize = 0;                // Lot size
 INPUT3 int Meta_Spread_SignalOpenMethod = 0;         // Signal open method
@@ -72,10 +72,10 @@ class Stg_Meta_Spread : public Strategy {
    * Event on strategy's init.
    */
   void OnInit() {
-    StrategyAdd(Meta_Spread_Strategy_Spread_LT_10, 0);
-    StrategyAdd(Meta_Spread_Strategy_Spread_LT_20, 1);
-    StrategyAdd(Meta_Spread_Strategy_Spread_LT_40, 2);
-    StrategyAdd(Meta_Spread_Strategy_Spread_GT_40, 3);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_1p, 0);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_2p, 1);
+    StrategyAdd(Meta_Spread_Strategy_Spread_LT_4p, 2);
+    StrategyAdd(Meta_Spread_Strategy_Spread_GT_4p, 3);
   }
 
   /**
@@ -110,17 +110,17 @@ class Stg_Meta_Spread : public Strategy {
     bool _result_signal = true;
     Chart *_chart = trade.GetChart();
     Ref<Strategy> _strat_ref;
-    double _spread = _chart.GetSpread();
-    if (_spread < 10) {
+    double _spread = _chart.GetSpreadInPips();
+    if (_spread < 1.0f) {
       // Strategy on spread 0-10pts.
       _strat_ref = strats.GetByKey(0);
-    } else if (_spread < 20) {
+    } else if (_spread < 2.0f) {
       // Strategy on spread 10-20pts.
       _strat_ref = strats.GetByKey(1);
-    } else if (_spread < 40) {
+    } else if (_spread < 4.0f) {
       // Strategy on spread 20-40pts.
       _strat_ref = strats.GetByKey(2);
-    } else if (_spread >= 40) {
+    } else if (_spread >= 4.0f) {
       // Strategy on spread >40pts.
       _strat_ref = strats.GetByKey(3);
     }
